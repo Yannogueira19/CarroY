@@ -13,10 +13,8 @@ import {
 import axios from 'axios';
 import { Picker } from '@react-native-picker/picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { db } from '../Config/firebaseconfig';
+import { db } from '../services/firebaseconfig';
 import { doc, setDoc, getDoc, deleteDoc } from 'firebase/firestore';
-
-
 
 
 const destaques = [

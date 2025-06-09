@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'reac
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { doc, setDoc } from 'firebase/firestore';
-import { db } from '../Config/firebaseconfig';
+import { db } from '../services/firebaseconfig';
 
 const Registro = () => {
   const navigation = useNavigation();

@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-import { db } from '../Config/firebaseconfig';
+import { db } from '../services/firebaseconfig';
 import { doc, getDoc } from 'firebase/firestore';
 
 const Perfil = ({ navigation }) => {
