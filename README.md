@@ -77,8 +77,6 @@ O aplicativo foi desenvolvido com Expo e funciona no **Expo Go**.
     AppNavigator.js
   /services       # Configurações de serviços externos
     firebaseConfig.js
-  /hooks          # Hooks personalizados
-    useUserUid.js
   /components     # (Opcional) Componentes reutilizáveis
 
 App.js            # Entry point, renderiza AppNavigator
@@ -100,8 +98,6 @@ index.js          # RegisterRootComponent (Expo)
 
    ```bash
    npm install
-   # ou
-   yarn install
    ```
 4. Inicie o projeto no Expo:
 
@@ -112,24 +108,4 @@ index.js          # RegisterRootComponent (Expo)
 
 ---
 
-## 🛠️ Custom Hook de UID
 
-`useUserUid` encapsula o acesso ao `AsyncStorage` para recuperar o UID do usuário:
-
-```js
-import { useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-export default function useUserUid() {
-  const [uid, setUid] = useState(null);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    AsyncStorage.getItem('uid')
-      .then(value => value && setUid(value))
-      .finally(() => setLoading(false));
-  }, []);
-  return { uid, loading };
-}
-```
-
----
