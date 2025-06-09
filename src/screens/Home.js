@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import axios from 'axios';
 import { Picker } from '@react-native-picker/picker';
-import { firebaseAuth, db } from '../Config/firebaseconfig';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { db } from '../Config/firebaseconfig';
 import { doc, setDoc, getDoc, deleteDoc } from 'firebase/firestore';
 
 
@@ -53,21 +54,17 @@ const destaques = [
 
 const Home = () => {
   const navigation = useNavigation();
-
   const [marcas, setMarcas] = useState([]);
   const [modelos, setModelos] = useState([]);
   const [anos, setAnos] = useState([]);
   const [carro, setCarro] = useState(null);
-
   const [marcaSelecionada, setMarcaSelecionada] = useState('');
   const [modeloSelecionado, setModeloSelecionado] = useState('');
   const [anoSelecionado, setAnoSelecionado] = useState('');
-
   const [loadingMarcas, setLoadingMarcas] = useState(false);
   const [loadingModelos, setLoadingModelos] = useState(false);
   const [loadingAnos, setLoadingAnos] = useState(false);
   const [loadingCarro, setLoadingCarro] = useState(false);
-  
   const [isFavorited, setIsFavorited] = useState(false);
   const [loadingFavoriteCheck, setLoadingFavoriteCheck] = useState(false);
   const [loadingFavoriteToggle, setLoadingFavoriteToggle] = useState(false);
@@ -123,12 +120,13 @@ const Home = () => {
 
   useEffect(() => {
     const checkFavoriteStatus = async () => {
-      if (carro && firebaseAuth.currentUser) {
+      if (carro) {
         setLoadingFavoriteCheck(true);
         try {
-          const userId = firebaseAuth.currentUser.uid;
+          const uid = await AsyncStorage.getItem('uid');
+          if (!uid) return;
           const carId = String(carro.CodigoFipe).replace(/\W/g, '');
-          const favRef = doc(db, 'users', userId, 'favorites', carId);
+          const favRef = doc(db, 'users', uid, 'favorites', carId);
           const docSnap = await getDoc(favRef);
           setIsFavorited(docSnap.exists());
         } catch (error) {
@@ -142,7 +140,6 @@ const Home = () => {
     };
     checkFavoriteStatus();
   }, [carro]);
-
 
   const buscarPrecoFipe = async () => {
     if (!marcaSelecionada || !modeloSelecionado || !anoSelecionado) {
@@ -166,15 +163,19 @@ const Home = () => {
   };
 
   const handleToggleFavorite = async () => {
-    if (!carro || !firebaseAuth.currentUser) {
-      Alert.alert('Erro', 'Nenhum carro selecionado ou usuário não logado.');
+    if (!carro) {
+      Alert.alert('Erro', 'Nenhum carro selecionado.');
       return;
     }
     setLoadingFavoriteToggle(true);
-    const userId = firebaseAuth.currentUser.uid;
-    const carId = String(carro.CodigoFipe).replace(/\W/g, '');
-    const favRef = doc(db, 'users', userId, 'favorites', carId);
     try {
+      const uid = await AsyncStorage.getItem('uid');
+      if (!uid) {
+        Alert.alert('Erro', 'Usuário não logado.');
+        return;
+      }
+      const carId = String(carro.CodigoFipe).replace(/\W/g, '');
+      const favRef = doc(db, 'users', uid, 'favorites', carId);
       if (isFavorited) {
         await deleteDoc(favRef);
         setIsFavorited(false);
@@ -191,6 +192,7 @@ const Home = () => {
       setLoadingFavoriteToggle(false);
     }
   };
+
 
   const renderDestaque = ({ item }) => (
     <TouchableOpacity

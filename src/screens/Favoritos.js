@@ -9,47 +9,42 @@ import {
   TouchableOpacity,
   RefreshControl
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-import { firebaseAuth, db } from '../Config/firebaseconfig';
+import { db } from '../Config/firebaseconfig';
 import { collection, query, doc, deleteDoc, getDocsFromServer } from 'firebase/firestore';
 
 const Favoritos = () => {
   const [favoritedCars, setFavoritedCars] = useState([]);
-  const [loading, setLoading] = useState(true); // Loading principal da lista
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [unfavoritingCarId, setUnfavoritingCarId] = useState(null); // ID do carro sendo removido
+  const [unfavoritingCarId, setUnfavoritingCarId] = useState(null);
 
   const fetchFavorites = useCallback(async (showLoadingIndicator = true) => {
-    if (showLoadingIndicator) {
-      setLoading(true);
-    }
-    const user = firebaseAuth.currentUser;
-    if (user) {
-      const userId = user.uid;
-      const favoritesRef = collection(db, 'users', userId, 'favorites');
-      const q = query(favoritesRef);
+    if (showLoadingIndicator) setLoading(true);
 
-      try {
-        const querySnapshot = await getDocsFromServer(q);
-        const cars = [];
-        querySnapshot.forEach((doc) => {
-          cars.push({ id: doc.id, ...doc.data() });
-        });
-        setFavoritedCars(cars);
-      } catch (error) {
-        console.error("Erro ao buscar favoritos: ", error);
-        Alert.alert('Erro', 'Não foi possível carregar os favoritos.');
-      } finally {
-        if (showLoadingIndicator) {
-          setLoading(false);
-        }
-        setRefreshing(false);
-      }
-    } else {
-      setFavoritedCars([]);
-      if (showLoadingIndicator) {
+    try {
+      const uid = await AsyncStorage.getItem('uid');
+      if (!uid) {
+        setFavoritedCars([]);
         setLoading(false);
+        return;
       }
+
+      const favoritesRef = collection(db, 'users', uid, 'favorites');
+      const q = query(favoritesRef);
+      const querySnapshot = await getDocsFromServer(q);
+
+      const cars = [];
+      querySnapshot.forEach((doc) => {
+        cars.push({ id: doc.id, ...doc.data() });
+      });
+      setFavoritedCars(cars);
+    } catch (error) {
+      console.error("Erro ao buscar favoritos: ", error);
+      Alert.alert('Erro', 'Não foi possível carregar os favoritos.');
+    } finally {
+      if (showLoadingIndicator) setLoading(false);
       setRefreshing(false);
     }
   }, []);
@@ -61,34 +56,37 @@ const Favoritos = () => {
   );
 
   const handleUnfavorite = async (carId, carModelo) => {
-    if (!firebaseAuth.currentUser || unfavoritingCarId === carId) return; // Evita cliques múltiplos
+    try {
+      const uid = await AsyncStorage.getItem('uid');
+      if (!uid || unfavoritingCarId === carId) return;
 
-    Alert.alert(
-      "Confirmar Remoção",
-      `Tem certeza que deseja remover ${carModelo} dos favoritos?`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Remover",
-          style: "destructive",
-          onPress: async () => {
-            setUnfavoritingCarId(carId); // Define o carro que está sendo removido
-            const userId = firebaseAuth.currentUser.uid;
-            const favRef = doc(db, 'users', userId, 'favorites', carId);
-            try {
-              await deleteDoc(favRef);
-              setFavoritedCars(prevCars => prevCars.filter(car => car.id !== carId));
-              // Alert.alert('Removido', `${carModelo} removido dos favoritos.`); // Opcional, pode ser redundante
-            } catch (error) {
-              console.error("Erro ao remover favorito: ", error);
-              Alert.alert('Erro', 'Não foi possível remover o favorito.');
-            } finally {
-              setUnfavoritingCarId(null); // Limpa o ID após a operação
-            }
+      Alert.alert(
+        "Confirmar Remoção",
+        `Tem certeza que deseja remover ${carModelo} dos favoritos?`,
+        [
+          { text: "Cancelar", style: "cancel" },
+          {
+            text: "Remover",
+            style: "destructive",
+            onPress: async () => {
+              setUnfavoritingCarId(carId);
+              const favRef = doc(db, 'users', uid, 'favorites', carId);
+              try {
+                await deleteDoc(favRef);
+                setFavoritedCars(prevCars => prevCars.filter(car => car.id !== carId));
+              } catch (error) {
+                console.error("Erro ao remover favorito: ", error);
+                Alert.alert('Erro', 'Não foi possível remover o favorito.');
+              } finally {
+                setUnfavoritingCarId(null);
+              }
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+    } catch (error) {
+      console.error('Erro ao acessar UID:', error);
+    }
   };
 
   const onRefresh = useCallback(() => {
@@ -153,84 +151,19 @@ const Favoritos = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f2f2f2',
-  },
-  listContent: {
-    padding: 16,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#555',
-  },
-  card: {
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 16,
-    marginBottom: 16,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-  },
-  nome: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#333',
-  },
-  preco: {
-    fontSize: 16,
-    color: '#007b00',
-    marginBottom: 4,
-    fontWeight: 'bold',
-  },
-  detalhes: {
-    fontSize: 14,
-    color: '#555',
-    marginBottom: 2,
-  },
-  emptyText: {
-    fontSize: 18,
-    color: '#555',
-    textAlign: 'center',
-  },
-  emptySubText: {
-    fontSize: 14,
-    color: '#777',
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  unfavoriteButton: {
-    marginTop: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: '#ffdddd',
-    borderColor: '#ff5555',
-    borderWidth: 1,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-    minWidth: 100, // Garante um tamanho mínimo para o botão
-    alignItems: 'center', // Centraliza o ActivityIndicator
-    justifyContent: 'center', // Centraliza o ActivityIndicator
-  },
-  unfavoriteButtonText: {
-    color: '#cc0000',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  buttonDisabled: {
-    backgroundColor: '#ffe5e5', // Cor mais clara quando desabilitado
-  },
+  container: { flex: 1, backgroundColor: '#f2f2f2' },
+  listContent: { padding: 16 },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  loadingText: { marginTop: 10, fontSize: 16, color: '#555' },
+  card: { backgroundColor: '#fff', padding: 20, borderRadius: 16, marginBottom: 16, elevation: 3, shadowColor: '#000', shadowOpacity: 0.1, shadowOffset: { width: 0, height: 2 }, shadowRadius: 4 },
+  nome: { fontSize: 18, fontWeight: 'bold', marginBottom: 8, color: '#333' },
+  preco: { fontSize: 16, color: '#007b00', marginBottom: 4, fontWeight: 'bold' },
+  detalhes: { fontSize: 14, color: '#555', marginBottom: 2 },
+  emptyText: { fontSize: 18, color: '#555', textAlign: 'center' },
+  emptySubText: { fontSize: 14, color: '#777', textAlign: 'center', marginTop: 8 },
+  unfavoriteButton: { marginTop: 12, paddingVertical: 8, paddingHorizontal: 12, backgroundColor: '#ffdddd', borderColor: '#ff5555', borderWidth: 1, borderRadius: 8, alignSelf: 'flex-start', minWidth: 100, alignItems: 'center', justifyContent: 'center' },
+  unfavoriteButtonText: { color: '#cc0000', fontWeight: 'bold', fontSize: 14 },
+  buttonDisabled: { backgroundColor: '#ffe5e5' },
 });
 
 export default Favoritos;

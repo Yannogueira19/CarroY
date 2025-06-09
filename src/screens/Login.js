@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage'; // <-- IMPORTANTE
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Login = () => {
   const navigation = useNavigation();
@@ -27,43 +27,34 @@ const Login = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        let message = 'Erro no login.';
-        if (data.error?.message === 'EMAIL_NOT_FOUND') message = 'Usuário não encontrado.';
-        else if (data.error?.message === 'INVALID_PASSWORD') message = 'Senha incorreta.';
-        else if (data.error?.message === 'INVALID_EMAIL') message = 'E-mail inválido.';
+        let message = 'Erro ao fazer login.';
+        if (data.error?.message === 'EMAIL_NOT_FOUND') {
+          message = 'Conta não encontrada. Verifique o e-mail digitado.';
+        } else if (data.error?.message === 'INVALID_PASSWORD') {
+          message = 'Senha incorreta. Tente novamente.';
+        } else if (data.error?.message === 'USER_DISABLED') {
+          message = 'Essa conta foi desativada pelo administrador.';
+        } else if (data.error?.message === 'INVALID_EMAIL') {
+          message = 'Formato de e-mail inválido.';
+        }
         Alert.alert('Erro', message);
         return;
       }
 
-      // ✅ Salva o UID do usuário para usar no perfil/favoritos
       await AsyncStorage.setItem('uid', data.localId);
-
       Alert.alert('Sucesso', 'Login realizado com sucesso!');
       navigation.navigate('Home');
     } catch (error) {
       console.error(error);
-      Alert.alert('Erro', 'Erro ao fazer login.');
+      Alert.alert('Erro', 'Erro ao fazer login. Verifique sua conexão.');
     }
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Ycars</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="E-mail"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Senha"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
+      <TextInput style={styles.input} placeholder="E-mail" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
+      <TextInput style={styles.input} placeholder="Senha" value={password} onChangeText={setPassword} secureTextEntry />
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
         <Text style={styles.buttonText}>Entrar</Text>
       </TouchableOpacity>

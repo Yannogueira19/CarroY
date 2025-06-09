@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../Config/firebaseconfig';
-import { useNavigation } from '@react-navigation/native';
 
 const Registro = () => {
   const navigation = useNavigation();
@@ -36,7 +37,13 @@ const Registro = () => {
 
       if (!response.ok) {
         let message = 'Erro ao cadastrar.';
-        if (data.error?.message === 'EMAIL_EXISTS') message = 'E-mail já cadastrado.';
+        if (data.error?.message === 'EMAIL_EXISTS') {
+          message = 'Este e-mail já está cadastrado. Tente outro.';
+        } else if (data.error?.message === 'INVALID_EMAIL') {
+          message = 'Formato de e-mail inválido.';
+        } else if (data.error?.message === 'WEAK_PASSWORD') {
+          message = 'A senha deve ter pelo menos 6 caracteres.';
+        }
         Alert.alert('Erro', message);
         return;
       }
@@ -52,7 +59,7 @@ const Registro = () => {
       navigation.navigate('Login');
     } catch (error) {
       console.error(error);
-      Alert.alert('Erro', 'Erro ao registrar usuário.');
+      Alert.alert('Erro', 'Erro ao registrar usuário. Verifique sua conexão.');
     }
   };
 
@@ -77,7 +84,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: '#f5f5f5' },
   title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, color: '#333' },
   input: { width: '100%', height: 50, borderColor: '#ccc', borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, marginBottom: 15, backgroundColor: '#fff' },
-  button: { width: '100%', height: 50, backgroundColor: '#007bff', borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
+  button: { width: '100%', height: 50, backgroundColor: '#28a745', borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   link: { color: '#007bff', marginTop: 10 },
 });

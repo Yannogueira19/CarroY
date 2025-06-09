@@ -43,14 +43,18 @@ const Perfil = ({ navigation }) => {
     }, [])
   );
 
-  const handleLogout = async () => {
+ const handleLogout = async () => {
+  try {
     await AsyncStorage.removeItem('uid');
     Alert.alert('Logout', 'Você saiu da sua conta.');
     navigation.reset({
       index: 0,
       routes: [{ name: 'Login' }],
     });
-  };
+  } catch (error) {
+    Alert.alert('Erro', 'Erro ao fazer logout.');
+  }
+};
 
   if (loading) {
     return (
